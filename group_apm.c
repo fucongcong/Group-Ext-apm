@@ -363,11 +363,11 @@ PHP_FUNCTION(group_apm)
 
 PHP_FUNCTION(group_apm_start)
 {
-  group_quotas.core_detail = NULL;
-  group_quotas.entry_free_list = NULL;
-  group_quotas.id = 0;
+  // group_quotas.core_detail = NULL;
+  // group_quotas.entry_free_list = NULL;
+  // group_quotas.id = 0;
 
-  begin_watch(TSRMLS_C);
+  // begin_watch(TSRMLS_C);
 }
 
 /* }}} */
@@ -426,7 +426,7 @@ PHP_RINIT_FUNCTION(group_apm)
   group_quotas.entry_free_list = NULL;
   group_quotas.id = 0;
 
-  // begin_watch(TSRMLS_C);
+  begin_watch(TSRMLS_C);
 
   return SUCCESS;
 }
