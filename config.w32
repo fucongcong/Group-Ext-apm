@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("group_apm", "for group_apm support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("group_apm", "enable group_apm support", "no");
+
+if (PHP_GROUP_APM != "no") {
+    EXTENSION("group_apm", "group_apm.c");
+}
+
