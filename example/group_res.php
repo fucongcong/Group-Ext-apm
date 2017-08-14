@@ -1,6 +1,6 @@
 <?php 
 
-$data = require "./data.php";
+$data = require "./data.json";
 $apm = [];
 $funcs = $data['func_res'];
 $tree = getTree($funcs, 0);
