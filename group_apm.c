@@ -37,6 +37,7 @@ static int le_group_apm;
 #define MICRO_IN_SEC 1000000.00
 #define MIN_SEC 0.001
 #define BUFF_SIZE 512
+#define GROUPAPM_VERSION "v0.0.1"
 
 typedef struct group_entry 
 {
@@ -170,7 +171,7 @@ static char *group_get_function_name(zend_op_array *ops TSRMLS_DC) {
   } else {
     function = get_active_function_name(TSRMLS_C);
     if (!function || !strlen(function)) {
-      function = "Unknown=>func";
+      function = "Unknown_func";
     } else {
       is_function = 1;
       class_name = get_active_class_name(&space TSRMLS_CC);
@@ -183,7 +184,12 @@ static char *group_get_function_name(zend_op_array *ops TSRMLS_DC) {
     origin_len = spprintf(&origin, 0, "%s", function);
   }
 
-  spprintf(&message, 0, "%s", origin);
+  const char *filename;
+  unsigned int line;
+  filename = (EG(current_execute_data)->function_state.function->op_array).filename;
+  line = (EG(current_execute_data)->function_state.function->op_array).line_start;
+
+  spprintf(&message, 0, "%s=>%s:%d", origin, filename, line);
   str_efree(origin);
   ret = estrdup(message);
   efree(message);
@@ -322,15 +328,10 @@ static void free_the_free_list() {
     free(cur);
   }
 }
-/* {{{ PHP_INI
- */
-/* Remove comments and fill if you need to have entries in php.ini
+
 PHP_INI_BEGIN()
-    STD_PHP_INI_ENTRY("group_apm.global_value",      "42", PHP_INI_ALL, OnUpdateLong, global_value, zend_group_apm_globals, group_apm_globals)
-    STD_PHP_INI_ENTRY("group_apm.global_string", "foobar", PHP_INI_ALL, OnUpdateString, global_string, zend_group_apm_globals, group_apm_globals)
+    PHP_INI_ENTRY("group_apm.enabled",      "1", PHP_INI_ALL, NULL)
 PHP_INI_END()
-*/
-/* }}} */
 
 /* Remove the following function when you have successfully modified config.m4
    so that your module can be compiled into PHP, it exists only for testing
@@ -361,15 +362,6 @@ PHP_FUNCTION(group_apm)
   add_assoc_double(return_value, "total_time", total_time);
 }
 
-PHP_FUNCTION(group_apm_start)
-{
-  // group_quotas.core_detail = NULL;
-  // group_quotas.entry_free_list = NULL;
-  // group_quotas.id = 0;
-
-  // begin_watch(TSRMLS_C);
-}
-
 /* }}} */
 /* The previous line is meant for vim and emacs, so it can correctly fold and 
    unfold functions in source code. See the corresponding marks just before 
@@ -377,25 +369,12 @@ PHP_FUNCTION(group_apm_start)
    follow this convention for the convenience of others editing your code.
 */
 
-
-/* {{{ php_group_apm_init_globals
- */
-/* Uncomment this function if you have INI entries
-static void php_group_apm_init_globals(zend_group_apm_globals *group_apm_globals)
-{
-  group_apm_globals->global_value = 0;
-  group_apm_globals->global_string = NULL;
-}
-*/
-/* }}} */
-
 /* {{{ PHP_MINIT_FUNCTION
  */
 PHP_MINIT_FUNCTION(group_apm)
 {   
-  /* If you have INI entries, uncomment these lines 
   REGISTER_INI_ENTRIES();
-  */
+
   //begin_watch();
 
   //group_quotas.cpu_num = sysconf(_SC_NPROCESSORS_CONF);
@@ -410,9 +389,9 @@ PHP_MINIT_FUNCTION(group_apm)
 PHP_MSHUTDOWN_FUNCTION(group_apm)
 { 
   free_the_free_list();
-  /* uncomment this line if you have INI entries
+
   UNREGISTER_INI_ENTRIES();
-  */
+
   return SUCCESS;
 }
 /* }}} */
@@ -426,8 +405,11 @@ PHP_RINIT_FUNCTION(group_apm)
   group_quotas.entry_free_list = NULL;
   group_quotas.id = 0;
 
-  begin_watch(TSRMLS_C);
-
+  long enabled = INI_INT("group_apm.enabled");
+  if (enabled == 1) {
+    begin_watch(TSRMLS_C);
+  }
+  
   return SUCCESS;
 }
 /* }}} */
@@ -448,14 +430,13 @@ PHP_RSHUTDOWN_FUNCTION(group_apm)
 /* {{{ PHP_MINFO_FUNCTION
  */
 PHP_MINFO_FUNCTION(group_apm)
-{
+{ 
   php_info_print_table_start();
+  php_info_print_table_header(2, "group_apm", GROUPAPM_VERSION);
   php_info_print_table_header(2, "group_apm support", "enabled");
   php_info_print_table_end();
 
-  /* Remove comments if you have entries in php.ini
   DISPLAY_INI_ENTRIES();
-  */
 }
 /* }}} */
 
@@ -465,7 +446,6 @@ PHP_MINFO_FUNCTION(group_apm)
  */
 const zend_function_entry group_apm_functions[] = {
   PHP_FE(group_apm, NULL)   /* For testing, remove later. */
-  PHP_FE(group_apm_start, NULL)
   PHP_FE_END  /* Must be the last line in group_apm_functions[] */
 };
 /* }}} */
