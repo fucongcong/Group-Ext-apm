@@ -1,5 +1,5 @@
 # ext_group-apm
-a php extension for monitor your code performance
+a php extension for monitor your code performance.
 
 #### Install
 
@@ -45,6 +45,10 @@ a php extension for monitor your code performance
 - cf => func name and filename:line
 - id => current func id
 - pf_id => parent func id
+
+#### tips
+
+It will record the func calltime > 1ms.
 
 #### example1
 
