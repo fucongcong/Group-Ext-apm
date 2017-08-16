@@ -12,23 +12,10 @@ function getTree($data, $pId, $minTime = 0.001)
         if($v['pf_id'] == $pId) {
             $v['pf_id'] = getTree($data, $v['id'], $minTime);
 
-            if (end($tree)) {
-                $end = end($tree);
-                $v['rt'] = $v['t'] - $end['t'];
-                if ($v['rt'] < $minTime) {
-                    continue;
-                }
-            } else {
-                $v['rt'] = $v['t'];
-                if ($v['t'] < $minTime) {
-                    continue;
-                }
-            }
-
             $v['children'] = $v['pf_id'];
             $v['state'] = ['opened' => true];
             unset($v['pf_id']);
-            $v['text'] = $v['cf']."(响应时间:".round($v['rt'], 4).")";
+            $v['text'] = $v['cf']."(响应时间:".round($v['t'], 4).")";
 
             $tree[] = $v;
 

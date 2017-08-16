@@ -113,6 +113,18 @@ static const char *group_get_base_filename(const char *filename) {
 
 static void (*_zend_execute_ex) (zend_execute_data *execute_data TSRMLS_DC);
 
+static void (*_zend_execute_internal) (zend_execute_data *execute_data,
+  struct _zend_fcall_info *fci, int ret TSRMLS_DC);
+
+static inline const char *group_get_executed_filename(TSRMLS_D)
+{
+  if (EG(current_execute_data) && EG(current_execute_data)->op_array) {
+    return EG(current_execute_data)->op_array->filename;
+  } else {
+    return zend_get_executed_filename(TSRMLS_C);
+  }
+}
+
 static char *group_get_function_name(zend_op_array *ops TSRMLS_DC) {
   zend_execute_data *data;
   const char        *func = NULL;
@@ -171,7 +183,7 @@ static char *group_get_function_name(zend_op_array *ops TSRMLS_DC) {
   } else {
     function = get_active_function_name(TSRMLS_C);
     if (!function || !strlen(function)) {
-      function = "Unknown_func";
+      function = "{main}";
     } else {
       is_function = 1;
       class_name = get_active_class_name(&space TSRMLS_CC);
@@ -186,8 +198,8 @@ static char *group_get_function_name(zend_op_array *ops TSRMLS_DC) {
 
   const char *filename;
   unsigned int line;
-  filename = (EG(current_execute_data)->function_state.function->op_array).filename;
-  line = (EG(current_execute_data)->function_state.function->op_array).line_start;
+  filename = group_get_executed_filename(TSRMLS_C);
+  line = zend_get_executed_lineno(TSRMLS_C);
 
   spprintf(&message, 0, "%s=>%s:%d", origin, filename, line);
   str_efree(origin);
@@ -204,16 +216,22 @@ static void record(group_entry **entry  TSRMLS_DC) {
   zval          *detail;
 
   end_time = _phpgettimeofday();
-  if (curr->prev_entry && MIN_SEC < (end_time - curr->prev_entry->time_of_start)) {
+  if (curr->prev_entry) {
 
-    MAKE_STD_ZVAL(detail);
-    array_init(detail);
-    add_next_index_zval(group_quotas.core_detail, detail);
+    double end;
 
-    add_assoc_double(detail, "t", (end_time - curr->prev_entry->time_of_start));
-    add_assoc_string(detail, "cf", curr->func, 1);
-    add_assoc_long(detail, "id", curr->id);
-    add_assoc_long(detail, "pf_id", curr->prev_entry->id);
+    end = end_time - curr->time_of_start;
+
+    if (MIN_SEC < end) {
+      MAKE_STD_ZVAL(detail);
+      array_init(detail);
+      add_next_index_zval(group_quotas.core_detail, detail);
+
+      add_assoc_double(detail, "t", end);
+      add_assoc_string(detail, "cf", curr->func, 1);
+      add_assoc_long(detail, "id", curr->id);
+      add_assoc_long(detail, "pf_id", curr->prev_entry->id);
+    }
   }
 }
 
@@ -271,16 +289,41 @@ ZEND_DLEXPORT void group_execute_ex (zend_execute_data *execute_data TSRMLS_DC) 
   efree(func);
 }
 
+
+ZEND_DLEXPORT void group_execute_internal (zend_execute_data *execute_data,
+  struct _zend_fcall_info *fci, int ret TSRMLS_DC) {
+
+  zend_op_array *ops = execute_data->op_array;
+
+  char          *func = NULL;
+  func = group_get_function_name(ops TSRMLS_DC);
+
+  if (!func) {
+    _zend_execute_internal(execute_data, fci, ret TSRMLS_CC);
+    return;
+  }
+
+  if (group_quotas.enabled) {
+    group_begin(&group_quotas.prev_entry, func);
+  }
+
+  _zend_execute_internal(execute_data, fci, ret TSRMLS_CC);
+
+  if (group_quotas.enabled && group_quotas.prev_entry) {
+
+    group_end(&group_quotas.prev_entry);
+
+  }
+  efree(func);
+}
+
 static void begin_watch(TSRMLS_D) {
-
-  // _zend_compile_file = zend_compile_file;
-  // zend_compile_file  = group_compile_file;
-
-  // _zend_compile_string = zend_compile_string;
-  // zend_compile_string = group_compile_string;
 
   _zend_execute_ex = zend_execute_ex;
   zend_execute_ex  = group_execute_ex;
+
+  _zend_execute_internal = zend_execute_internal;
+  zend_execute_internal = group_execute_internal;
 
   if (group_quotas.core_detail) {
     zval_dtor(group_quotas.core_detail);
@@ -292,6 +335,8 @@ static void begin_watch(TSRMLS_D) {
   group_quotas.enabled = 1;
 
   group_quotas.time_of_minit = _phpgettimeofday();
+
+  group_begin(&group_quotas.prev_entry, "{main}");
 }
 
 static void stop_watch(TSRMLS_D) {
@@ -302,6 +347,7 @@ static void stop_watch(TSRMLS_D) {
 
   if (group_quotas.enabled) {
     zend_execute_ex  = _zend_execute_ex;
+    zend_execute_internal = _zend_execute_internal;
     group_quotas.enabled = 0;
   }
 }
