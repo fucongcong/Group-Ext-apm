@@ -5,12 +5,12 @@ $apm = [];
 $funcs = $data['func_res'];
 $tree = getTree($funcs, 0);
 
-function getTree($data, $pId, $minTime = 0.001)
+function getTree($data, $pId)
 {   
     $tree = [];
     foreach($data as $k => $v) {
         if($v['pf_id'] == $pId) {
-            $v['pf_id'] = getTree($data, $v['id'], $minTime);
+            $v['pf_id'] = getTree($data, $v['id']);
 
             $v['children'] = $v['pf_id'];
             $v['state'] = ['opened' => true];
