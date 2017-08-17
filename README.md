@@ -9,6 +9,9 @@ a php extension for monitor your code performance.
 
 #### php.ini config 
     
+    //add the extension
+    extension="group_apm.so"
+
     //default is 1;
     group_apm.enabled = 1;
 
