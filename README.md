@@ -19,6 +19,8 @@ a php extension for monitor your code performance.
     //default is 1;
     group_apm.enabled = 1;
 
+#### restart your php-fpm
+
 #### Get start
 
 ```php 
