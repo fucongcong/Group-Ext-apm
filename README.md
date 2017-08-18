@@ -1,7 +1,9 @@
 # ext_group-apm
 a php extension for monitor your code performance.
 
-#### php5.6
+#### Support
+- php5.6 
+- php7
 
 #### Install
 
