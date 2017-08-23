@@ -223,9 +223,6 @@ static char *group_get_function_name(zend_op_array *ops TSRMLS_DC) {
   efree(origin);
   ret = estrdup(message);
   efree(message);
-
-
-
   // if (EG(current_execute_data) 
   //   && EG(current_execute_data)->prev_execute_data 
   //   && EG(current_execute_data)->prev_execute_data->function_state.arguments) {
@@ -242,7 +239,6 @@ static char *group_get_function_name(zend_op_array *ops TSRMLS_DC) {
   //   }
 
   // }
-
   return ret;
 }
 #else
@@ -329,8 +325,6 @@ static char *group_get_function_name(zend_op_array *ops TSRMLS_DC) {
 }
 #endif
 
-
-
 #if PHP_VERSION_ID < 70000
 static void record(group_entry **entry  TSRMLS_DC) {
 
@@ -384,9 +378,6 @@ static void record(group_entry **entry  TSRMLS_DC) {
   }
 }
 #endif 
-
-
-
 
 #define group_begin(entry, fun)\
   do {\
@@ -446,8 +437,6 @@ ZEND_DLEXPORT void group_execute_ex (zend_execute_data *execute_data TSRMLS_DC) 
   efree(func);
 }
 
-
-
 #if PHP_VERSION_ID < 70000
 ZEND_DLEXPORT void group_execute_internal (zend_execute_data *execute_data,
   struct _zend_fcall_info *fci, int ret TSRMLS_DC) {
@@ -504,9 +493,6 @@ ZEND_DLEXPORT void group_execute_internal (zend_execute_data *execute_data,
 }
 #endif
 
-
-
-
 #if PHP_VERSION_ID < 70000
 static void begin_watch(TSRMLS_D) {
 
@@ -550,8 +536,6 @@ static void begin_watch(TSRMLS_D) {
 }
 #endif
 
-
-
 static void stop_watch(TSRMLS_D) {
   
   while (group_quotas.prev_entry) {
@@ -564,8 +548,6 @@ static void stop_watch(TSRMLS_D) {
     group_quotas.enabled = 0;
   }
 }
-
-
 
 #if PHP_VERSION_ID < 70000
 static void clear_quotas() {
@@ -586,8 +568,6 @@ static void clear_quotas() {
 }
 #endif
 
-
-
 static void free_the_free_list() {
   group_entry *p = group_quotas.entry_free_list;
   group_entry *cur;
@@ -603,13 +583,6 @@ PHP_INI_BEGIN()
     PHP_INI_ENTRY("group_apm.enabled",      "1", PHP_INI_ALL, NULL)
 PHP_INI_END()
 
-/* Remove the following function when you have successfully modified config.m4
-   so that your module can be compiled into PHP, it exists only for testing
-   purposes. */
-
-/* Every user-visible function in PHP should document itself in the source */
-/* {{{ proto string group_apm(string arg)
-   Return a string to confirm that the module is compiled in */
 #if PHP_VERSION_ID < 70000
 PHP_FUNCTION(group_apm)
 { 
@@ -656,15 +629,6 @@ PHP_FUNCTION(group_apm)
 }
 #endif
 
-/* }}} */
-/* The previous line is meant for vim and emacs, so it can correctly fold and 
-   unfold functions in source code. See the corresponding marks just before 
-   function definition, where the functions purpose is also documented. Please 
-   follow this convention for the convenience of others editing your code.
-*/
-
-/* {{{ PHP_MINIT_FUNCTION
- */
 PHP_MINIT_FUNCTION(group_apm)
 {   
   REGISTER_INI_ENTRIES();
@@ -676,10 +640,6 @@ PHP_MINIT_FUNCTION(group_apm)
   return SUCCESS;
 }
 
-/* }}} */
-
-/* {{{ PHP_MSHUTDOWN_FUNCTION
- */
 PHP_MSHUTDOWN_FUNCTION(group_apm)
 { 
   free_the_free_list();
@@ -688,11 +648,7 @@ PHP_MSHUTDOWN_FUNCTION(group_apm)
 
   return SUCCESS;
 }
-/* }}} */
 
-/* Remove if there's nothing to do at request start */
-/* {{{ PHP_RINIT_FUNCTION
- */
 PHP_RINIT_FUNCTION(group_apm)
 {
 #if PHP_VERSION_ID < 70000
@@ -710,11 +666,7 @@ PHP_RINIT_FUNCTION(group_apm)
   
   return SUCCESS;
 }
-/* }}} */
 
-/* Remove if there's nothing to do at request end */
-/* {{{ PHP_RSHUTDOWN_FUNCTION
- */
 PHP_RSHUTDOWN_FUNCTION(group_apm)
 {
   stop_watch(TSRMLS_C);
@@ -723,10 +675,6 @@ PHP_RSHUTDOWN_FUNCTION(group_apm)
   return SUCCESS;
 }
 
-/* }}} */
-
-/* {{{ PHP_MINFO_FUNCTION
- */
 PHP_MINFO_FUNCTION(group_apm)
 { 
   php_info_print_table_start();
@@ -736,43 +684,25 @@ PHP_MINFO_FUNCTION(group_apm)
 
   DISPLAY_INI_ENTRIES();
 }
-/* }}} */
 
-/* {{{ group_apm_functions[]
- *
- * Every user visible function must have an entry in group_apm_functions[].
- */
 const zend_function_entry group_apm_functions[] = {
-  PHP_FE(group_apm, NULL)   /* For testing, remove later. */
-  PHP_FE_END  /* Must be the last line in group_apm_functions[] */
+  PHP_FE(group_apm, NULL)
+  PHP_FE_END
 };
-/* }}} */
 
-/* {{{ group_apm_module_entry
- */
 zend_module_entry group_apm_module_entry = {
   STANDARD_MODULE_HEADER,
   "group_apm",
   group_apm_functions,
   PHP_MINIT(group_apm),
   PHP_MSHUTDOWN(group_apm),
-  PHP_RINIT(group_apm),   /* Replace with NULL if there's nothing to do at request start */
-  PHP_RSHUTDOWN(group_apm), /* Replace with NULL if there's nothing to do at request end */
+  PHP_RINIT(group_apm),
+  PHP_RSHUTDOWN(group_apm),
   PHP_MINFO(group_apm),
   PHP_GROUP_APM_VERSION,
   STANDARD_MODULE_PROPERTIES
 };
-/* }}} */
 
 #ifdef COMPILE_DL_GROUP_APM
 ZEND_GET_MODULE(group_apm)
 #endif
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */
